@@ -24,7 +24,14 @@ from typing import List
 from aiohttp import ClientSession
 from discord import SyncWebhook, Webhook, Embed
 
-DEPENDENCY_LOGGERS: set[str] = {"aiohttp", "discord", "asyncio", "concurrent.futures", "websockets", "urllib3"}
+DEPENDENCY_LOGGERS: set[str] = {
+    "aiohttp",
+    "discord",
+    "asyncio",
+    "concurrent.futures",
+    "websockets",
+    "urllib3",
+}
 
 
 def filter_out_dependencies(record: LogRecord) -> int:
@@ -32,7 +39,9 @@ def filter_out_dependencies(record: LogRecord) -> int:
     Filters out records from dependencies. This is needed to not have an infinite loop of logging.
     """
 
-    should_filter: bool = any([record.name.startswith(dependency) for dependency in DEPENDENCY_LOGGERS])
+    should_filter: bool = any(
+        [record.name.startswith(dependency) for dependency in DEPENDENCY_LOGGERS]
+    )
 
     return 0 if should_filter else 1
 
@@ -41,13 +50,13 @@ class DiscordWebhookHandler(Handler):
     """A logging handler that allows you to send messages with Discord Webhooks."""
 
     def __init__(
-            self,
-            webhook: str | SyncWebhook | Webhook,
-            level: int = NOTSET,
-            *,
-            can_format: bool = False,
-            run_async: bool = False,
-    ):
+        self,
+        webhook: str | SyncWebhook | Webhook,
+        level: int = NOTSET,
+        *,
+        can_format: bool = False,
+        run_async: bool = False,
+    ) -> None:
         super().__init__(level)
         self.addFilter(filter_out_dependencies)
 
@@ -64,47 +73,64 @@ class DiscordWebhookHandler(Handler):
                 self._webhook = Webhook.from_url(webhook, session=self._aiohttp_session)
             else:
                 self._webhook = SyncWebhook.from_url(webhook)
-                self._thread_pool = ThreadPoolExecutor(thread_name_prefix=f"dislog-{self._webhook.id}-")
+                self._thread_pool = ThreadPoolExecutor(
+                    thread_name_prefix=f"dislog-{self._webhook.id}-"
+                )
 
     def _send(self, *args, **kwargs) -> None:
         if self._async:
-            assert isinstance(self._webhook, Webhook) and self._aiohttp_session is not None
+            assert (
+                isinstance(self._webhook, Webhook) and self._aiohttp_session is not None
+            )
 
             loop: AbstractEventLoop = get_running_loop()
             loop.create_task(self._webhook.send(*args, **kwargs))
             # note: this might not happen instantly. that's ok though, because we timestamp the message.
         else:
-            assert isinstance(self._webhook, SyncWebhook) and self._thread_pool is not None
+            assert (
+                isinstance(self._webhook, SyncWebhook) and self._thread_pool is not None
+            )
 
             self._thread_pool.submit(self._webhook.send, *args, **kwargs)
 
     def close(self) -> None:
         if self._async:
             assert self._aiohttp_session is not None
-            self._aiohttp_session.close()
+            loop: AbstractEventLoop = self._aiohttp_session.loop
+            if loop.is_running():
+                loop.create_task(self._aiohttp_session.close())
+            elif not loop.is_closed():
+                loop.run_until_complete(self._aiohttp_session.close())
+            else:
+                raise RuntimeWarning(
+                    "The event loop is closed, so the aiohttp session cannot be closed."
+                )
         else:
             assert self._thread_pool is not None
             self._thread_pool.shutdown()
         super().close()
 
     def emit(self, record: LogRecord) -> None:
-        if record.levelname == "CRITICAL" or record.levelname == "FATAL" or record.levelname == "ERROR":
-            color: int = 0xFF0000
+        color: int
+        if (
+            record.levelname == "CRITICAL"
+            or record.levelname == "FATAL"
+            or record.levelname == "ERROR"
+        ):
+            color = 0xFF0000
         elif record.levelname == "WARN" or record.levelname == "WARNING":
-            color: int = 0xFFFF00
+            color = 0xFFFF00
         elif record.levelname == "DEBUG":
-            color: int = 0x5a0d36  # picked from my oneshot banner because its eye-catching
+            color = 0x5A0D36  # picked from my oneshot banner because its eye-catching
         else:
-            color: int = 0xFFFFFF
+            color = 0xFFFFFF
 
         embed_dict: dict = {
             "title": f"{record.levelname} on {record.threadName} ({record.thread})",
             "color": color,
             "description": f"```{self.format(record) if self._format else record.getMessage()}```",
             "timestamp": datetime.utcfromtimestamp(record.created).isoformat(),
-            "footer": {
-                "text": record.name
-            }
+            "footer": {"text": record.name},
         }
 
         # patching over some legacy code here...
@@ -114,6 +140,4 @@ class DiscordWebhookHandler(Handler):
         self._send(embeds=[embed])
 
 
-__all__: List[str] = [
-    "DiscordWebhookHandler"
-]
+__all__: List[str] = ["DiscordWebhookHandler"]
