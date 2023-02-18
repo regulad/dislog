@@ -1,6 +1,6 @@
 """
     DiscordWebhookLogger (dislog) provides an interface for using a Discord webhook as a logger.
-    Copyright (C) 2022 Parker Wahle
+    Copyright (C) 2023 Parker Wahle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,6 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 from .handler import *
