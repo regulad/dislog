@@ -25,7 +25,7 @@ import pytest
 from dislog import DiscordWebhookHandler
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def webhook_url() -> str:
     """
     Returns the webhook URL to use for testing.

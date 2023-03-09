@@ -17,8 +17,12 @@ Designed to abstract away webhook-specific details, such as the JSON format, and
 Simple as:
 
 ```sh
-pip install dislog
+pip install dislog[discordpy]
 ```
+
+You can use extras to define which implementation of `discord.py` you want to use.
+
+* `discordpy`: `discord.py
 
 ## Example
 
@@ -42,10 +46,10 @@ It also works with asynchronous code, simply pass the `run_async` keyword argume
 ```py
 from dislog import DiscordWebhookHandler
 from logging import *
-from asyncio import run, sleep
+from asyncio import run, sleep, get_running_loop
 
 async def main():
-    basicConfig(level=ERROR, handlers=[StreamHandler(), DiscordWebhookHandler("url", run_async=True, text_send_on_error="<@440468612365680650>")])
+    basicConfig(level=ERROR, handlers=[StreamHandler(), DiscordWebhookHandler("url", event_loop=get_running_loop(), text_send_on_error="<@440468612365680650>")])
 
     error("hi")
 

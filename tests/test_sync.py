@@ -17,9 +17,6 @@
 """
 from __future__ import annotations
 
-import sys
-from time import sleep
-
 from . import *
 
 
@@ -27,7 +24,7 @@ def test_sync_handler(webhook_url: str, python_version_ident: str) -> None:
     """
     Tests the handler running in synchronous mode (non-asyncio).
     """
-    logger = get_logger(webhook_url, run_async=False)
+    logger = get_logger(webhook_url)
 
     logger.exception(f"Sync Exception on {python_version_ident}!")
     logger.critical(f"Sync Critical on {python_version_ident}!")

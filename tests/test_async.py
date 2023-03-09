@@ -17,7 +17,7 @@
 """
 from __future__ import annotations
 
-import sys
+import asyncio
 from asyncio import sleep
 
 import pytest
@@ -30,7 +30,8 @@ async def test_async_handler(webhook_url: str, python_version_ident: str) -> Non
     """
     Tests the handler running in asynchronous mode (asyncio).
     """
-    logger = get_logger(webhook_url, run_async=True)
+    loop = asyncio.get_event_loop()
+    logger = get_logger(webhook_url, event_loop=loop)
 
     logger.exception(f"Async Exception on {python_version_ident}!")
     logger.critical(f"Async Critical on {python_version_ident}!")
@@ -44,9 +45,7 @@ async def test_async_handler(webhook_url: str, python_version_ident: str) -> Non
         logger.removeHandler(handler)
         handler.close()
 
-    await sleep(
-        5
-    )  # In async mode, we need a little time to finish sending the messages.
+    await sleep(5)  # In async mode, we need a little time to finish sending the messages.
 
 
 __all__ = ("test_async_handler",)
